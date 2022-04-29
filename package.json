@@ -1,0 +1,16 @@
+{
+  "name": "twitchbot2",
+  "version": "1.0.0",
+  "description": "Modular twitch bot made with tmi.js",
+  "main": "src",
+  "scripts": {
+    "start": "node ./src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eric Roberts",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "tmi.js": "^1.8.5"
+  }
+}
