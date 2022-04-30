@@ -33,10 +33,13 @@ function arrayBackSwapErase( arr, value )
 {
 	const index = arr.indexOf( value );
 	if ( index != -1 )
-	{
-		arr[ index ] = arrayBack( arr );
-		arr.pop();
-	}
+		arrayBackSwapEraseAt( index );
+}
+
+function arrayBackSwapEraseAt( arr, index )
+{
+	arr[ index ] = arrayBack( arr );
+	arr.pop();
 }
 
 function arrayContains( arr, value )
@@ -85,6 +88,7 @@ module.exports = {
 	arrayBack,
 	arrayErase,
 	arrayBackSwapErase,
+	arrayBackSwapEraseAt,
 	arrayContains,
 	arrayPushUnique,
 	arrayRandom,
