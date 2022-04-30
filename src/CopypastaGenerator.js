@@ -47,7 +47,7 @@ class RandomUsernameSelector
 			username = this.replyToUsername;
 			this.replyToUsername = undefined;
 
-			availableIndex = this.available.find( x => util.strieq( x, username ) );
+			availableIndex = this.available.findIndex( x => util.strieq( x, username ) );
 		}
 
 		// check if there are any usernames still available
@@ -81,7 +81,6 @@ class CopypastaGenerator
 	constructor( botCore )
 	{
 		this.core = botCore;
-		botCore.client.on("chat", this.onChat.bind( this ) );
 
 		// config
 		this.config = {
@@ -104,6 +103,28 @@ class CopypastaGenerator
 		this.messageTimer = null;
 		this.lastReplyTimeMS = 0;
 		this.chatHistory = []; // history of tokens and weights put into the markov chain so they can be removed later
+
+		let self = this;
+
+		botCore.client.on("chat", (channel, userstate, message, self) => this.onChat(channel, userstate, message, self) );
+
+		botCore.client.on("ban", (channel, username, reason, userstate) =>
+		{
+			console.log( `\n${username} was banned. Reason: ${reason}` );
+			this.removeChatHistory( username );
+		});
+
+		botCore.client.on("messagedeleted", (channel, username, message, userstate) =>
+		{
+			console.log( `\nMessage from ${username} was deleted: "${message}"` );
+			this.removeChatHistory( username );
+		});
+
+		botCore.client.on("timeout", (channel, username, reason, duration, userstate) =>
+		{
+			console.log( `\n${username} timed out for ${duration} seconds` );
+			this.removeChatHistory( username );
+		});
 	}
 
 	onChat( channel, userstate, message, self )
@@ -117,8 +138,6 @@ class CopypastaGenerator
 		// ignore commands
 		if ( message[0] === "!" )
 			return;
-
-		console.log(`${userstate.username}:\t${message}` );
 		
 		// reduce message countdown
 		if ( this.messageCountdown > 0 )
@@ -256,7 +275,7 @@ class CopypastaGenerator
 		return message;
 	}
 
-	// returns true if bot name was mentioned
+	// returns true if bot name was mentioned. Username should not be a display name
 	parseMessage( username, message )
 	{
 		const { tokens, wasMentioned } =  this.#tokenize( message );
@@ -268,10 +287,32 @@ class CopypastaGenerator
 			{
 				this.#parseTokens( tokens, weight, this.markovChain.addTransition.bind( this.markovChain ) );
 				this.chatHistory.push( { username, tokens, weight } );
+
+				console.log(`${username}:\t${tokens.join( " " )}` );
 			}
 		}
 
 		return wasMentioned;
+	}
+
+	// username to remove should not be a display name
+	removeChatHistory( usernameToRemove )
+	{
+		console.log( `\nRemoving chat history for ${usernameToRemove}` );
+
+		for( let i = 0; i < this.chatHistory.length; )
+		{
+			const { username, tokens, weight } = this.chatHistory[ i ];
+			if ( util.strieq( username, usernameToRemove ) )
+			{
+				this.#removeTokens( entry.tokens, weight );
+				this.chatHistory.splice( i, 1 );
+			}
+			else
+			{
+				i++;
+			}
+		}
 	}
 
 	// returns object containing tokens and other stats
@@ -357,28 +398,10 @@ class CopypastaGenerator
 			this.sayCopypasta();
 	}
 
+	// username should not be a display name
 	#addChatHistory( username, tokens, weight )
 	{
 		this.chatHistory.push( { username, tokens, weight } );
-	}
-
-	#removeChatHistory( usernameToRemove )
-	{
-		console.log( `\nRemoving chat history for ${usernameToRemove}` );
-
-		for( let i = 0; i < this.chatHistory.length; )
-		{
-			const { username, tokens, weight } = this.chatHistory[ i ];
-			if ( util.strieq( username, usernameToRemove ) )
-			{
-				this.#removeTokens( entry.tokens, weight );
-				this.chatHistory.splice( i, 1 );
-			}
-			else
-			{
-				i++;
-			}
-		}
 	}
 
 	#removeTokens( tokens, weight )
