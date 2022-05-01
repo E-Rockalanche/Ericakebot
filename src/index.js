@@ -24,3 +24,19 @@ const pyramidStopper = new PyramidStopper( botCore );
 
 // start
 botCore.connect();
+
+process.on( "exit", () =>
+{
+	console.log( "Process exiting" );
+	botCore.shutdown();
+});
+
+process.on( "SIGTERM", () =>
+{
+	process.exit(0);
+});
+
+process.on( "SIGINT", () =>
+{
+	process.exit(0);
+});

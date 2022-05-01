@@ -45,6 +45,11 @@ class BotCore extends EventEmitter
 	{
 		this.client.connect().catch( console.error );
 	}
+
+	shutdown()
+	{
+		this.emit( "shutdown" );
+	}
 }
 
 module.exports = BotCore;
