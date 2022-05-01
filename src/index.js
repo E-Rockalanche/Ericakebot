@@ -4,6 +4,7 @@
 require("dotenv").config();
 
 const options = require("./CommandLineArgs.js").parse( process.argv );
+console.log( options );
 
 const BotCore = require("./botcore.js");
 const CopypastaGenerator = require("./CopypastaGenerator.js");
@@ -11,16 +12,13 @@ const PyramidStopper = require("./PyramidStopper.js");
 
 const botName = process.env.BOT_USERNAME;
 const botAuth = process.env.BOT_OAUTH;
-const channel = process.argv[2];
-
-console.log( { botName, botAuth, channel } );
 
 // initialize bot
-const botCore = new BotCore( botName, botAuth, channel );
+const botCore = new BotCore( botName, botAuth, options.channel );
 
 // add components
-const copypastaGenerator = new CopypastaGenerator( botCore );
-const pyramidStopper = new PyramidStopper( botCore );
+const copypastaGenerator = new CopypastaGenerator( botCore, options );
+const pyramidStopper = new PyramidStopper( botCore, options );
 
 // start
 botCore.connect();
@@ -39,4 +37,10 @@ process.on( "SIGTERM", () =>
 process.on( "SIGINT", () =>
 {
 	process.exit(0);
+});
+
+process.on( "uncaughtException", (err) =>
+{
+	console.error( `Unhandled error: "${err}"` );
+	process.exit(1);
 });
