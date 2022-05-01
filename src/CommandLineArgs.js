@@ -31,9 +31,10 @@ function parse( args )
 				lastArgName = arg;
 			}
 		}
-		else
+		else if ( lastArgName != "" )
 		{
 			options[ lastArgName ] = arg;
+			lastArgName = "";
 		}
 	}
 
