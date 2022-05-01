@@ -79,7 +79,7 @@ class RandomUsernameSelector
 
 class CopypastaGenerator
 {
-	constructor( botCore )
+	constructor( botCore, options )
 	{
 		this.core = botCore;
 
@@ -100,12 +100,10 @@ class CopypastaGenerator
 		// state
 		this.markovChain = new MarkovChain();
 		this.usernames = [];
-		this.messageCountdown = 0;
+		this.messageCountdown = this.config.messageCountDelay;
 		this.messageTimer = null;
 		this.lastReplyTimeMS = 0;
 		this.chatHistory = []; // history of tokens and weights put into the markov chain so they can be removed later
-
-		let self = this;
 
 		botCore.client.on("chat", this.onChat.bind( this ) );
 
@@ -133,6 +131,13 @@ class CopypastaGenerator
 		});
 
 		this.loadChatHistory();
+
+		if ( options.corpus )
+		{
+			this.loadCorpus( options.corpus + "" );
+		}
+
+		this.scheduleSayCopypasta();
 	}
 
 	onChat( channel, userstate, message, self )
@@ -284,11 +289,12 @@ class CopypastaGenerator
 	}
 
 	// returns true if bot name was mentioned. Username should not be a display name
-	parseMessage( username, message )
+	parseMessage( username, message, addToHistory = true )
 	{
 		console.log(`${username}:\t"${message}"` );
 
-		this.#addChatHistory( username, message );
+		if ( addToHistory )
+			this.#addChatHistory( username, message );
 
 		const { tokens, wasMentioned } = this.#tokenize( message );
 
@@ -329,7 +335,7 @@ class CopypastaGenerator
 		const filePath = path + filename;
 		fs.writeFileSync( filePath, JSON.stringify( this.chatHistory ) );
 
-		console.log( "Saved chat history to " + filePath );
+		console.log( `Saved chat history to "${filePath}"` );
 	}
 
 	loadChatHistory()
@@ -338,14 +344,35 @@ class CopypastaGenerator
 		if ( !fs.existsSync( filePath ) )
 			return;
 		
-		const json = fs.readFileSync( filePath );
+		const json = fs.readFileSync( filePath, "utf8" );
 		const history = JSON.parse( json );
 		for( const { username, message } of history )
 		{
 			this.parseMessage( username, message );
 		}
 
-		console.log( "Loaded chat history from " + filePath );
+		console.log( `Loaded chat history from "${filePath}"` );
+	}
+
+	loadCorpus( filename )
+	{
+		if ( !fs.existsSync( filename ) )
+		{
+			console.error( `Corpus file "${filename}" does not exist` );
+			return false;
+		}
+
+		const CORPUS_USERNAME = "";
+		const ADD_TO_HISTORY = false;
+
+		const messages = fs.readFileSync( filename, "utf8" ).split( /\n/ );
+		for( const message of messages )
+		{
+			this.parseMessage( CORPUS_USERNAME, message, ADD_TO_HISTORY );
+		}
+
+		console.log( `Loaded corpus from "${filename}"` );
+		return true;
 	}
 
 	#getSaveDirectory()
