@@ -54,10 +54,10 @@ class MarkovChain
 		if ( currentWeight < 0 )
 			console.error( `MarkovChain.removetransition -- Weight for transition '${from}'->'${to}' is less than 0` );
 		
-		if ( rule.totalWeight < 0 )
+		if ( row.totalWeight < 0 )
 			console.error( `MarkovChain.removetransition -- Total weight for row '${from}' is less than 0` );
 		
-		if ( rule.totalWeight <= 0 )
+		if ( row.totalWeight <= 0 )
 			this.matrix.delete( key );
 		else if ( currentWeight <= 0 )
 			row.weights.delete( value );
