@@ -4,7 +4,6 @@
   "description": "Modular twitch bot made with tmi.js",
   "main": "src",
   "scripts": {
-    "start": "node ./src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Eric Roberts",
