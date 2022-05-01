@@ -2,7 +2,8 @@ const MarkovChain = require("./markovchain.js");
 const util = require("./util.js");
 const fs = require("fs");
 
-const PUNCTUATION_REGEX = /[\.\,\?\!\:\;]+/g;
+const PUNCTUATION_REPLACE_REGEX = /[\.\,\?\!\:\;]+\s/g // any number of punctuation followed by whitespace
+const PUNCTUATION_TOKEN_REGEX = /^[\.\,\?\!\:\;]+$/; // any number of punctuation
 
 const USERNAME_REGEX = /^@([a-zA-Z0-9_]{4,25})$/;
 
@@ -11,7 +12,7 @@ const URL_REGEX = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.
 const STREAMER_TAG = "<streamer>";
 const USER_TAG_REGEX = /^<username(\d+)?>$/;
 
-const URL_REPLACEMENT = "<shady-url-here>";
+const URL_REPLACEMENT = " <shady-url-here> ";
 
 const END_TOKEN = "";
 
@@ -77,35 +78,40 @@ class RandomUsernameSelector
 	}
 }
 
+const DEFAULT_CONFIG = {
+	allowURLs: false,                            // allows bot to repeat URLs
+	weightFunction: tokenLength => 1,            // function to transform token length to markov transition weight
+	keyLength: 3,                                // markov chain token key length
+	minTokenLength: 1,                           // minimum message token length to parse
+	maxMessageLength: MAX_TWITCH_MESSAGE_LENGTH, // max message length allowed to say
+	messageCountDelay: 10,                       // message count delay between chatting
+	messageDelaySeconds: 90,                     // time delay between chatting
+	messageGenerationRetries: 4,                 // amount of extra times the bot tries to generate a message before giving up
+	allowReplies: true,                          // allow bot to reply to bot mentions
+	replyDelaySeconds: 10                        // time delay between sending replies
+};
+
 class CopypastaGenerator
 {
-	constructor( botCore, options )
+	constructor( botCore, config = {} )
 	{
 		this.core = botCore;
 
 		// config
-		this.config = {
-			allowURLs: false,                            // allows bot to repeat URLs
-			weightFunction: messageTokenLength => 1,     // function to transform token length to markov transition weight
-			keylength: 3,                                // markov chain token key length
-			minTokenLength: 1,                           // minimum message token length to parse
-			maxMessageLength: MAX_TWITCH_MESSAGE_LENGTH, // max message length allowed to say
-			messageCountDelay: 10,                       // message count delay between chatting
-			messageDelaySeconds: 90,                     // time delay between chatting
-			messageGenerationRetries: 4,                 // amount of extra times the bot tries to generate a message before giving up
-			allowReplies: true,                          // allow bot to reply to bot mentions
-			replyDelaySeconds: 10                        // time delay between sending replies
-		};
+		this.config = {};
+		Object.assign( this.config, DEFAULT_CONFIG ); // copy defaults
+		Object.assign( this.config, config ); // copy overrides
 
 		// state
 		this.markovChain = new MarkovChain();
+		this.totalMessagesWeight = 0; // use to calculate markov chain entropy
 		this.usernames = [];
 		this.messageCountdown = this.config.messageCountDelay;
 		this.messageTimer = null;
 		this.lastReplyTimeMS = 0;
 		this.chatHistory = []; // history of tokens and weights put into the markov chain so they can be removed later
 
-		botCore.client.on("chat", this.onChat.bind( this ) );
+		botCore.client.on("chat", (channel, userstate, message, self) => this.onChat(channel, userstate, message, self) );
 
 		botCore.client.on("ban", (channel, username, reason, userstate) =>
 		{
@@ -125,17 +131,11 @@ class CopypastaGenerator
 			this.removeChatHistory( username );
 		});
 
-		botCore.on("shutdown", () =>
-		{
-			this.saveChatHistory();
-		});
+		botCore.on("commandline", command => this.handleCommand( command ) );
+
+		botCore.on("shutdown", () => this.saveChatHistory() );
 
 		this.loadChatHistory();
-
-		if ( options.corpus )
-		{
-			this.loadCorpus( options.corpus + "" );
-		}
 
 		this.scheduleSayCopypasta();
 	}
@@ -150,7 +150,10 @@ class CopypastaGenerator
 
 		// ignore commands
 		if ( message[0] === "!" )
+		{
+			this.handleCommand( message );
 			return;
+		}
 		
 		// reduce message countdown
 		if ( this.messageCountdown > 0 )
@@ -246,7 +249,7 @@ class CopypastaGenerator
 
 			// check for special tokens
 			let isPunctuation = false;
-			if ( PUNCTUATION_REGEX.test( token ) )
+			if ( PUNCTUATION_TOKEN_REGEX.test( token ) )
 			{
 				isPunctuation = true;
 			}
@@ -375,6 +378,50 @@ class CopypastaGenerator
 		return true;
 	}
 
+	// returns entropy in terms of bits
+	calculateEntropy()
+	{
+		// sum weighted average of entropy
+		let entropy = 0;
+		this.markovChain.matrix.forEach( (row, state) =>
+		{
+			// ignore inital state since it has high entropy and doesn't contribute to randomness of gernated message
+			if ( state === "" )
+				return;
+
+			entropy += ( row.totalWeight / this.totalMessagesWeight ) * this.markovChain.calculateRowEntropy( row );
+		});
+		return entropy;
+	}
+
+	handleCommand( message )
+	{
+		const tokens = message.split( /\s+/ );
+		let command = tokens[0];
+		const args = tokens.slice( 1 );
+
+		if ( command[0] == "!" )
+			command = command.slice( 1 );
+
+		console.log( `\nHandling command "${command}", arguments: ${args}` );
+
+		switch( command )
+		{
+			case "entropy":
+			{
+				const entropy = this.calculateEntropy();
+				console.log( `Entropy: ${entropy}\n` );
+				break;
+			}
+
+			case "generate":
+			{
+				this.sayCopypasta();
+				break;
+			}
+		}
+	}
+
 	#getSaveDirectory()
 	{
 		return process.env.APPDATA + "/ericakebot/";
@@ -396,7 +443,7 @@ class CopypastaGenerator
 			message = message.replace( URL_REGEX, URL_REPLACEMENT );
 		}
 
-		const tokens = message.replace( PUNCTUATION_REGEX, ( match ) => { return " " + match + " "; } ) // add spaces around puncuation
+		const tokens = message.replace( PUNCTUATION_REPLACE_REGEX, ( match ) => { return " " + match + " "; } ) // add spaces around puncuation
 			.trim()
 			.split( /\s+/ ); // split into array of tokens
 		
@@ -436,7 +483,7 @@ class CopypastaGenerator
 		return { tokens, wasMentioned };
 	}
 
-	#processTokens( tokens, transitionFunc )
+	#processTokens( tokens, addToMarkovChain = true )
 	{
 		// ignore messages that are too short
 		if ( tokens.length < this.config.minTokenLength )
@@ -447,15 +494,27 @@ class CopypastaGenerator
 		if ( weight <= 0 )
 			return;
 
+		let processTransition;
+		if ( addToMarkovChain )
+		{
+			processTransition = this.markovChain.addTransition.bind( this.markovChain );
+			this.totalMessagesWeight += weight;
+		}
+		else
+		{
+			processTransition = this.markovChain.removeTransition.bind( this.markovChain );
+			this.totalMessagesWeight -= weight;
+		}
+
 		// add/remove transitions
 		const prevTokens = [];
 		for( let token of tokens )
 		{
-			transitionFunc( this.#createKey( prevTokens ), token, weight );
+			processTransition( this.#createKey( prevTokens ), token, weight );
 			prevTokens.push( token );
 		}
 
-		transitionFunc( this.#createKey( prevTokens ), END_TOKEN, weight );
+		processTransition( this.#createKey( prevTokens ), END_TOKEN, weight );
 	}
 
 	#createKey( tokens )
@@ -463,7 +522,7 @@ class CopypastaGenerator
 		return tokens.slice( -this.config.keyLength ) // take last few tokens to use for key
 			.join( " " )
 			.toUpperCase()
-			.replace( /'([A-Z])/g, (match, p1) => p1 ) // remove quotes from contractions
+			.replace( /['’]([A-Z])/g, (match, p1) => p1 ) // remove single quotes from contractions
 			.trim();
 	}
 

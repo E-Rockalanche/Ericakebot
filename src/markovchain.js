@@ -2,13 +2,9 @@ const util = require( "./util.js" );
 
 class MarkovChain
 {
-	constructor( matrix = null )
+	constructor()
 	{
-		// create sparse matrix of weights for row->column state transitions
-		if ( matrix !== null )
-			this.matrix = new Map( matrix );
-		else
-			this.matrix = new Map();
+		this.matrix = new Map(); // sparse matrix of weights for row->column state transitions
 	}
 
 	addTransition( from, to, weight = 1 )
@@ -116,9 +112,31 @@ class MarkovChain
 		return weight;
 	}
 
-	toJSON()
+	// returns entropy in terms of bits
+	calculateStateEntropy( state )
 	{
-		return Array.from( this.matrix.entries() );
+		const row = this.matrix.get( state );
+		if ( row === undefined )
+			return 0;
+
+		return this.calculateRowEntropy( row );
+	}
+
+	// returns entropy in terms of bits
+	calculateRowEntropy( row )
+	{
+		// H(X) = -SUM[i=1, n](P(x[i])*log(P(x[i])))
+
+		if ( row.totalWeight <= 0 )
+			return 0; // state doesn't transition
+
+		let entropy = 0;
+		row.weights.forEach( weight =>
+		{
+			const probability = weight / row.totalWeight;
+			entropy -= probability * Math.log2( probability );
+		});
+		return entropy;
 	}
 }
 

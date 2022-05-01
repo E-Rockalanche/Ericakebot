@@ -6,22 +6,33 @@ require("dotenv").config();
 const options = require("./CommandLineArgs.js").parse( process.argv );
 console.log( options );
 
+const readline = require("readline");
+
 const BotCore = require("./botcore.js");
 const CopypastaGenerator = require("./CopypastaGenerator.js");
 const PyramidStopper = require("./PyramidStopper.js");
 
-const botName = process.env.BOT_USERNAME;
-const botAuth = process.env.BOT_OAUTH;
+// INITIALIZE
 
-// initialize bot
-const botCore = new BotCore( botName, botAuth, options.channel );
+const botCore = new BotCore( process.env.BOT_USERNAME, process.env.BOT_OAUTH, options.channel );
 
-// add components
-const copypastaGenerator = new CopypastaGenerator( botCore, options );
-const pyramidStopper = new PyramidStopper( botCore, options );
+const copypastaGenerator = new CopypastaGenerator( botCore, { keyLength: 2, minTokenLength: 2, maxMessageLength: 256 } );
 
-// start
+if ( options.corpus )
+	copypastaGenerator.loadCorpus( options.corpus );
+
+const pyramidStopper = new PyramidStopper( botCore );
+
+// RUN
+
 botCore.connect();
+
+const cli = readline.createInterface( process.stdin, process.stdout );
+
+cli.on("line", (text) =>
+{
+	botCore.emit("commandline", text);
+});
 
 process.on( "exit", () =>
 {
