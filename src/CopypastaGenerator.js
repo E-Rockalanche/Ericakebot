@@ -1,5 +1,6 @@
 const MarkovChain = require("./markovchain.js");
 const util = require("./util.js");
+const fs = require("fs");
 
 const PUNCTUATION_REGEX = /[\.\,\?\!\:\;]+/g;
 
@@ -106,7 +107,7 @@ class CopypastaGenerator
 
 		let self = this;
 
-		botCore.client.on("chat", (channel, userstate, message, self) => this.onChat(channel, userstate, message, self) );
+		botCore.client.on("chat", this.onChat.bind( this ) );
 
 		botCore.client.on("ban", (channel, username, reason, userstate) =>
 		{
@@ -125,6 +126,13 @@ class CopypastaGenerator
 			console.log( `\n${username} timed out for ${duration} seconds` );
 			this.removeChatHistory( username );
 		});
+
+		botCore.on("shutdown", () =>
+		{
+			this.saveChatHistory();
+		});
+
+		this.loadChatHistory();
 	}
 
 	onChat( channel, userstate, message, self )
@@ -278,19 +286,13 @@ class CopypastaGenerator
 	// returns true if bot name was mentioned. Username should not be a display name
 	parseMessage( username, message )
 	{
-		const { tokens, wasMentioned } =  this.#tokenize( message );
+		console.log(`${username}:\t"${message}"` );
 
-		if ( tokens.length >= this.config.minTokenLength )
-		{
-			const weight = this.config.weightFunction( tokens.length );
-			if ( weight > 0 )
-			{
-				this.#parseTokens( tokens, weight, this.markovChain.addTransition.bind( this.markovChain ) );
-				this.chatHistory.push( { username, tokens, weight } );
+		this.#addChatHistory( username, message );
 
-				console.log(`${username}:\t${tokens.join( " " )}` );
-			}
-		}
+		const { tokens, wasMentioned } = this.#tokenize( message );
+
+		this.#processTokens( tokens, this.markovChain.addTransition.bind( this.markovChain ) );
 
 		return wasMentioned;
 	}
@@ -302,10 +304,10 @@ class CopypastaGenerator
 
 		for( let i = 0; i < this.chatHistory.length; )
 		{
-			const { username, tokens, weight } = this.chatHistory[ i ];
+			const { username, message } = this.chatHistory[ i ];
 			if ( util.strieq( username, usernameToRemove ) )
 			{
-				this.#removeTokens( entry.tokens, weight );
+				this.#removeMessage( message );
 				this.chatHistory.splice( i, 1 );
 			}
 			else
@@ -313,6 +315,47 @@ class CopypastaGenerator
 				i++;
 			}
 		}
+
+		console.log("\n");
+	}
+
+	saveChatHistory()
+	{
+		const path = this.#getSaveDirectory();
+		const filename = this.#getSaveFilename();
+
+		fs.mkdirSync( path, { recursive : true } );
+
+		const filePath = path + filename;
+		fs.writeFileSync( filePath, JSON.stringify( this.chatHistory ) );
+
+		console.log( "Saved chat history to " + filePath );
+	}
+
+	loadChatHistory()
+	{
+		const filePath = this.#getSaveDirectory() + this.#getSaveFilename();
+		if ( !fs.existsSync( filePath ) )
+			return;
+		
+		const json = fs.readFileSync( filePath );
+		const history = JSON.parse( json );
+		for( const { username, message } of history )
+		{
+			this.parseMessage( username, message );
+		}
+
+		console.log( "Loaded chat history from " + filePath );
+	}
+
+	#getSaveDirectory()
+	{
+		return process.env.APPDATA + "/ericakebot/";
+	}
+
+	#getSaveFilename()
+	{
+		return this.core.channel + "-chathistory.json";
 	}
 
 	// returns object containing tokens and other stats
@@ -366,11 +409,18 @@ class CopypastaGenerator
 		return { tokens, wasMentioned };
 	}
 
-	#parseTokens( tokens, weight, transitionFunc )
+	#processTokens( tokens, transitionFunc )
 	{
-		if ( tokens.length == 0 )
+		// ignore messages that are too short
+		if ( tokens.length < this.config.minTokenLength )
 			return;
 
+		// ignore message that will have no weight in the markov chain
+		const weight = this.config.weightFunction( tokens.length );
+		if ( weight <= 0 )
+			return;
+
+		// add/remove transitions
 		const prevTokens = [];
 		for( let token of tokens )
 		{
@@ -390,6 +440,13 @@ class CopypastaGenerator
 			.trim();
 	}
 
+	#removeMessage( message )
+	{
+		console.log( `Removing "${message}"` );
+		const { tokens } = this.#tokenize( message );
+		this.#processTokens( tokens, this.markovChain.removeTransition.bind( this.markovChain ) );
+	}
+
 	#onMessageTimer()
 	{
 		this.messageTimer = null;
@@ -399,15 +456,9 @@ class CopypastaGenerator
 	}
 
 	// username should not be a display name
-	#addChatHistory( username, tokens, weight )
+	#addChatHistory( username, message )
 	{
-		this.chatHistory.push( { username, tokens, weight } );
-	}
-
-	#removeTokens( tokens, weight )
-	{
-		console.log( `Removing "${tokens.join( " " )}"` );
-		this.#parseTokens( tokens, weight, this.markovChain.removeTransition.bind( this.markovChain ) );
+		this.chatHistory.push( { username, message } );
 	}
 };
 
