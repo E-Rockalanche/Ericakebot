@@ -16,7 +16,7 @@ const PyramidStopper = require("./PyramidStopper.js");
 
 const botCore = new BotCore( process.env.BOT_USERNAME, process.env.BOT_OAUTH, options.channel );
 
-const copypastaGenerator = new CopypastaGenerator( botCore, { keyLength: 2, minTokenLength: 2, maxMessageLength: 256 } );
+const copypastaGenerator = new CopypastaGenerator( botCore, { keyLength: 3, minTokenLength: 3, maxMessageLength: 256 } );
 
 if ( options.corpus )
 	copypastaGenerator.loadCorpus( options.corpus );
