@@ -85,7 +85,7 @@ const DEFAULT_CONFIG = {
 	minTokenLength: 1,                           // minimum message token length to parse
 	maxMessageLength: MAX_TWITCH_MESSAGE_LENGTH, // max message length allowed to say
 	messageCountDelay: 10,                       // message count delay between chatting
-	messageDelaySeconds: 90,                     // time delay between chatting
+	messageDelaySeconds: 180,                    // time delay between chatting
 	messageGenerationRetries: 4,                 // amount of extra times the bot tries to generate a message before giving up
 	allowReplies: true,                          // allow bot to reply to bot mentions
 	replyDelaySeconds: 10                        // time delay between sending replies
@@ -129,6 +129,22 @@ class CopypastaGenerator
 		{
 			console.log( `\n${username} timed out for ${duration} seconds` );
 			this.removeChatHistory( username );
+		});
+		
+		botCore.client.on("subgift", (channel, username, streakMonths, receipient, methods, userstate) =>
+		{
+			if ( util.strieq( receipient, this.core.username ) )
+			{
+				this.core.client.say( channel, `@${username} Thanks for the sub!!!` );
+			}
+		});
+		
+		botCore.client.on("whisper", (from, userstate, message, self) =>
+		{
+			if ( self )
+				return;
+			
+			this.core.client.whisper( from, `Hi! I'm ${this.core.channel}, a chat bot developed by Ericake. I read messages in chat and use them to randomly generate new messages using a Markov chain. I also block pyramids :)` );
 		});
 
 		botCore.on("commandline", command => this.handleCommand( command ) );
@@ -417,6 +433,12 @@ class CopypastaGenerator
 			case "generate":
 			{
 				this.sayCopypasta();
+				break;
+			}
+			
+			case "say":
+			{
+				this.core.client.say( this.core.channel, args.join( " " ) );
 				break;
 			}
 		}
