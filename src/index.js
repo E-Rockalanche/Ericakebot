@@ -11,6 +11,7 @@ const readline = require("readline");
 const BotCore = require("./botcore.js");
 const CopypastaGenerator = require("./CopypastaGenerator.js");
 const PyramidStopper = require("./PyramidStopper.js");
+const ChantComponent = require("./ChantComponent.js");
 
 // INITIALIZE
 
@@ -22,6 +23,8 @@ if ( options.corpus )
 	copypastaGenerator.loadCorpus( options.corpus );
 
 const pyramidStopper = new PyramidStopper( botCore );
+
+const chantComponent = new ChantComponent( botCore );
 
 // RUN
 
