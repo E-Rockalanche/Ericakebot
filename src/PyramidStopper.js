@@ -61,7 +61,7 @@ class PyramidStopper
 		if ( util.randomChance( this.mentionChance ) )
 			message = `@${username} ${message}`;
 
-		this.core.client.say( channel, message );
+		this.core.say( channel, message );
 	}
 };
 

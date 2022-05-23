@@ -15,7 +15,7 @@ const ChantComponent = require("./ChantComponent.js");
 
 // INITIALIZE
 
-const botCore = new BotCore( process.env.BOT_USERNAME, process.env.BOT_OAUTH, options.channel );
+const botCore = new BotCore( process.env.BOT_USERNAME, process.env.BOT_OAUTH, options );
 
 const copypastaGenerator = new CopypastaGenerator( botCore, { keyLength: 3, minTokenLength: 3, maxMessageLength: 256 } );
 
@@ -32,9 +32,9 @@ botCore.connect();
 
 const cli = readline.createInterface( process.stdin, process.stdout );
 
-cli.on("line", (text) =>
+cli.on("line", str =>
 {
-	botCore.emit("commandline", text);
+	botCore.parseCommand( str );
 });
 
 process.on( "exit", () =>
@@ -53,7 +53,7 @@ process.on( "SIGINT", () =>
 	process.exit(0);
 });
 
-process.on( "uncaughtException", (err) =>
+process.on( "uncaughtException", err =>
 {
 	console.error( `Unhandled error: "${err}"` );
 	process.exit(1);

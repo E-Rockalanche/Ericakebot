@@ -18,6 +18,8 @@ const END_TOKEN = "";
 
 const MAX_TWITCH_MESSAGE_LENGTH = 510;
 
+const COMMAND_REGEX = /^[!/]\w/;
+
 function createUserTag( num )
 {
 	return `<username${num}>`;
@@ -135,7 +137,7 @@ class CopypastaGenerator
 		{
 			if ( util.strieq( receipient, this.core.username ) )
 			{
-				this.core.client.say( channel, `@${username} Thanks for the sub!!!` );
+				this.core.say( channel, `@${username} Thanks for the sub!!!` );
 			}
 		});
 		
@@ -144,10 +146,10 @@ class CopypastaGenerator
 			if ( self )
 				return;
 			
-			this.core.client.whisper( from, `Hi! I'm ${this.core.channel}, a chat bot developed by Ericake. I read messages in chat and use them to randomly generate new messages using a Markov chain. I also block pyramids :)` );
+			this.core.client.whisper( from, `Hi! I'm ${this.core.channel}, a chat bot developed by Ericake. I read messages in chat and use them to randomly generate new messages using a Markov chain. I also block pyramids and participate in chants :)` );
 		});
 
-		botCore.on("commandline", command => this.handleCommand( command ) );
+		botCore.on("command", ( command, args ) => this.handleCommand( command, args ) );
 
 		botCore.on("shutdown", () => this.saveChatHistory() );
 
@@ -165,11 +167,8 @@ class CopypastaGenerator
 		}
 
 		// ignore commands
-		if ( message[0] === "!" )
-		{
-			this.handleCommand( message );
+		if ( COMMAND_REGEX.test( message ) )
 			return;
-		}
 		
 		// reduce message countdown
 		if ( this.messageCountdown > 0 )
@@ -215,9 +214,7 @@ class CopypastaGenerator
 
 		if ( message )
 		{
-			console.log( `\n${this.core.username}:\t${message}\n` );
-
-			this.core.client.say( this.core.channel, message );
+			this.core.say( this.core.channel, message );
 			this.onSelfChat();
 			return true;
 		}
@@ -410,17 +407,8 @@ class CopypastaGenerator
 		return entropy;
 	}
 
-	handleCommand( message )
+	handleCommand( command, args )
 	{
-		const tokens = message.split( /\s+/ );
-		let command = tokens[0];
-		const args = tokens.slice( 1 );
-
-		if ( command[0] == "!" )
-			command = command.slice( 1 );
-
-		console.log( `\nHandling command "${command}", arguments: ${args}` );
-
 		switch( command )
 		{
 			case "entropy":
@@ -438,6 +426,7 @@ class CopypastaGenerator
 			
 			case "say":
 			{
+				// bypass core.say
 				this.core.client.say( this.core.channel, args.join( " " ) );
 				break;
 			}

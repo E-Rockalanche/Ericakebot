@@ -39,7 +39,7 @@ class ChantComponent
 		if ( this.messageCount >= this.repeatCountToChant && userstate.username !== this.originUsername )
 		{
 			this.lastMessage = message;
-			this.core.client.say( channel, message );
+			this.core.say( channel, message );
 		}
 	}
 };
