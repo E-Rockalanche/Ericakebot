@@ -86,7 +86,7 @@ const DEFAULT_CONFIG = {
 	keyLength: 3,                                // markov chain token key length
 	minTokenLength: 1,                           // minimum message token length to parse
 	maxMessageLength: MAX_TWITCH_MESSAGE_LENGTH, // max message length allowed to say
-	messageCountDelay: 15,                       // message count delay between chatting
+	messageCountDelay: 10,                       // message count delay between chatting
 	messageDelaySeconds: 180,                    // time delay between chatting
 	messageGenerationRetries: 4,                 // amount of extra times the bot tries to generate a message before giving up
 	allowReplies: true,                          // allow bot to reply to bot mentions
