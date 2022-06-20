@@ -17,7 +17,13 @@ const ChantComponent = require("./ChantComponent.js");
 
 const botCore = new BotCore( process.env.BOT_USERNAME, process.env.BOT_OAUTH, options );
 
-const copypastaGenerator = new CopypastaGenerator( botCore, { keyLength: 3, minTokenLength: 3, maxMessageLength: 256 } );
+const copypastaGeneratorOptions = {
+	keyLength: 3,
+	minTokenLength: 3,
+	maxMessageLength: 256,
+	weightFunction: x => Math.round( Math.sqrt( x ) )
+};
+const copypastaGenerator = new CopypastaGenerator( botCore, copypastaGeneratorOptions );
 
 if ( options.corpus )
 	copypastaGenerator.loadCorpus( options.corpus );
