@@ -424,6 +424,22 @@ class CopypastaGenerator
 				break;
 			}
 			
+			case "test":
+			{
+				const count = ( args.length > 0 ) ? parseInt( args[0] ) : 1;
+				console.log( `\nTesting ${count} messages:` );
+				for( let i = 0; i < count; ++i )
+				{
+					let message = "";
+					while( !message )
+						message = this.generateMessage();
+					
+					console.log( `Generated "${message}"` );
+				}
+				console.log( '\n' );
+				break;
+			}
+			
 			case "say":
 			{
 				// bypass core.say
