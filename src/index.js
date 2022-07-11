@@ -19,9 +19,9 @@ const botCore = new BotCore( process.env.BOT_USERNAME, process.env.BOT_OAUTH, op
 
 const copypastaGeneratorOptions = {
 	keyLength: 3,
-	minTokenLength: 3,
+	minTokenLength: 2,
 	maxMessageLength: 256,
-	weightFunction: x => Math.round( Math.sqrt( x ) )
+	weightFunction: x => 1 // Math.round( Math.sqrt( x ) )
 };
 const copypastaGenerator = new CopypastaGenerator( botCore, copypastaGeneratorOptions );
 
