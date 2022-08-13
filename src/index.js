@@ -21,7 +21,7 @@ const copypastaGeneratorOptions = {
 	keyLength: 3,
 	minTokenLength: 2,
 	maxMessageLength: 256,
-	weightFunction: x => 1 // Math.round( Math.sqrt( x ) )
+	weightFunction: x => Math.round( Math.sqrt( x ) )
 };
 const copypastaGenerator = new CopypastaGenerator( botCore, copypastaGeneratorOptions );
 
