@@ -13,7 +13,7 @@ class PyramidStopper
 		this.core = botCore;
 
 		// config
-		this.stopSize = 2;
+		this.stopSize = 3;
 		this.mentionChance = 0.25;
 
 		// state
