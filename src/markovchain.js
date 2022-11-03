@@ -125,7 +125,7 @@ class MarkovChain
 	// returns entropy in terms of bits
 	calculateRowEntropy( row )
 	{
-		// H(X) = -SUM[i=1, n](P(x[i])*log(P(x[i])))
+		// H(X) = -SUM[i=1, n](P(x[i])*log2(P(x[i])))
 
 		if ( row.totalWeight <= 0 )
 			return 0; // state doesn't transition
@@ -137,6 +137,13 @@ class MarkovChain
 			entropy -= probability * Math.log2( probability );
 		});
 		return entropy;
+	}
+
+	// returns true if state has a deterministic transition
+	stateHasZeroEntropy( state )
+	{
+		const row = this.matrix.get( state );
+		return row === undefined || row.weights.size() <= 1;
 	}
 }
 
