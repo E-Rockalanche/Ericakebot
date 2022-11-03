@@ -446,6 +446,12 @@ class CopypastaGenerator
 				this.core.client.say( this.core.channel, args.join( " " ) );
 				break;
 			}
+
+			case "record":
+			{
+				this.parseMessage( "", args.join( " " ) );
+				break;
+			}
 		}
 	}
 
@@ -490,21 +496,34 @@ class CopypastaGenerator
 			return tag;
 		};
 
+		const botUsernameUpper = this.core.username.toUpperCase();
+
 		// replace username mentions with tags
 		tokens.forEach( ( token, i, arr ) =>
 		{
-			const result = token.match( USERNAME_REGEX );
-			if ( result !== null )
+			let username = null;
+
+			if ( util.strieq( token, botUsernameUpper ) )
 			{
-				const username = result[1].toUpperCase(); // username is first capture group
-
-				// check if bot name was mentioned
-				if ( username === this.core.username.toUpperCase() )
-					wasMentioned = true;
-
-				// convert username to tag
-				arr[i] = getTagForUsername( username );
+				// replace non-mentions to bot name
+				username = botUsernameUpper;
 			}
+			else
+			{
+				const result = token.match( USERNAME_REGEX );
+				if ( result !== null )
+				{
+					// username is first capture group
+					username = result[1].toUpperCase();
+
+					// check if bot name was mentioned
+					wasMentioned = wasMentioned || ( username === botUsernameUpper );
+				}
+			}
+
+			// convert username to tag
+			if ( username !== null )
+				arr[i] = getTagForUsername( username );
 		} );
 
 		return { tokens, wasMentioned };
