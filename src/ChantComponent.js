@@ -5,15 +5,14 @@ class ChantComponent
 		this.core = botCore;
 
 		// config
-		this.repeatCountToChant = 3;
+		this.requiredChantCount = 3; // how many time to see chant
+		this.chatHistorySize = 6; // out of how many messages
 
 		// state
-		this.chantMessage = "";
-		this.originUsername = "";
-		this.messageCount = 0;
 		this.lastMessage = "";
+		this.chatHistory = [];
 
-		botCore.client.on("chat", this.onChat.bind( this ));
+		botCore.client.on( "chat", this.onChat.bind( this ) );
 	}
 
 	onChat( channel, userstate, message, self )
@@ -21,22 +20,31 @@ class ChantComponent
 		if ( self )
 			return;
 
+		const username = userstate.username;
+		message = message.toUpperCase(); // ignore message casing
+
+		// add message to history
+		this.chatHistory.push( { username, message } );
+		if ( this.chatHistory.length > this.chatHistorySize )
+			this.chatHistory.shift();
+
+		// ignore last chant message
 		if ( message === this.lastMessage )
-			return; // don't repeat chants
+			return;
 
-		if ( message === this.chantMessage )
+		// count recent occurences by unique users
+		let chantCount = 0;
+		const chanters = new Set();
+		this.chatHistory.forEach( record =>
 		{
-			this.messageCount++;
-		}
-		else
-		{
-			// reset potential chant message
-			this.chantMessage = message;
-			this.originUsername = userstate.username;
-			this.messageCount = 1;
-		}
+			if ( record.message === message && !chanters.has( record.username ) )
+			{
+				chanters.add( username );
+				chantCount++;
+			}
+		} );
 
-		if ( this.messageCount >= this.repeatCountToChant && userstate.username !== this.originUsername )
+		if ( chantCount >= this.requiredChantCount )
 		{
 			this.lastMessage = message;
 			this.core.say( channel, message );
