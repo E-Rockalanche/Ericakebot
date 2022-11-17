@@ -44,7 +44,6 @@ class RandomUsernameSelector
 		{
 			return username;
 		}
-
 		// check if there's a username we must use
 		else if ( this.replyToUsername !== undefined )
 		{
@@ -53,13 +52,11 @@ class RandomUsernameSelector
 
 			availableIndex = this.available.findIndex( x => util.strieq( x, username ) );
 		}
-
 		// check if there are any usernames still available
 		else if ( this.available.length == 0 )
 		{
 			return undefined;
 		}
-
 		// choose a random username
 		else
 		{
@@ -90,7 +87,8 @@ const DEFAULT_CONFIG = {
 	messageDelaySeconds: 180,                    // time delay between chatting
 	messageGenerationRetries: 4,                 // amount of extra times the bot tries to generate a message before giving up
 	allowReplies: true,                          // allow bot to reply to bot mentions
-	replyDelaySeconds: 20                        // time delay between sending replies
+	replyDelaySeconds: 20,                       // time delay between sending replies
+	useEqualWeights: false                       // gives every markov transition from each state the same probability
 };
 
 class CopypastaGenerator
@@ -253,7 +251,7 @@ class CopypastaGenerator
 
 		while( true )
 		{
-			let token = this.markovChain.transitionFrom( this.#createKey( prevTokens ) );
+			let token = this.markovChain.transitionFrom( this.#createKey( prevTokens ), this.config.useEqualWeights );
 			if ( token === END_TOKEN )
 				break; // finished
 
@@ -450,6 +448,13 @@ class CopypastaGenerator
 			case "record":
 			{
 				this.parseMessage( "", args.join( " " ) );
+				break;
+			}
+
+			case "useequalweights":
+			{
+				this.config.useEqualWeights = ( args[0].toUpperCase() === "TRUE" );
+				console.log( `Use equal weights: ${this.config.useEqualWeights}` );
 				break;
 			}
 		}
