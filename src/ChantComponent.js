@@ -6,7 +6,7 @@ class ChantComponent
 
 		// config
 		this.requiredChantCount = 3; // how many time to see chant
-		this.chatHistorySize = 6; // out of how many messages
+		this.chatHistorySize = 10; // out of how many messages
 
 		// state
 		this.lastMessage = "";
@@ -21,15 +21,15 @@ class ChantComponent
 			return;
 
 		const username = userstate.username;
-		message = message.toUpperCase(); // ignore message casing
+		const messageUpper = message.toUpperCase();
 
 		// add message to history
-		this.chatHistory.push( { username, message } );
+		this.chatHistory.push( { username, message: messageUpper } );
 		if ( this.chatHistory.length > this.chatHistorySize )
 			this.chatHistory.shift();
 
 		// ignore last chant message
-		if ( message === this.lastMessage )
+		if ( messageUpper === this.lastMessage )
 			return;
 
 		// count recent occurences by unique users
@@ -37,7 +37,7 @@ class ChantComponent
 		const chanters = new Set();
 		this.chatHistory.forEach( record =>
 		{
-			if ( record.message === message && !chanters.has( record.username ) )
+			if ( record.message === messageUpper && !chanters.has( record.username ) )
 			{
 				chanters.add( username );
 				chantCount++;
@@ -46,7 +46,7 @@ class ChantComponent
 
 		if ( chantCount >= this.requiredChantCount )
 		{
-			this.lastMessage = message;
+			this.lastMessage = messageUpper;
 			this.core.say( channel, message );
 		}
 	}
