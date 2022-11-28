@@ -21,7 +21,7 @@ class ChantComponent
 			return;
 
 		const username = userstate.username;
-		const messageUpper = message.toUpperCase();
+		const messageUpper = message.trim().toUpperCase();
 
 		// add message to history
 		this.chatHistory.push( { username, messageUpper } );
