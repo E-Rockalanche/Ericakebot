@@ -39,7 +39,7 @@ class ChantComponent
 		{
 			if ( record.messageUpper === messageUpper && !chanters.has( record.username ) )
 			{
-				chanters.add( username );
+				chanters.add( record.username );
 				chantCount++;
 			}
 		} );
