@@ -21,11 +21,11 @@ class ChantComponent
 			return;
 
 		const username = userstate.username;
-		const messageUpper = message.toUpperCase();
+		const messageUpper = message.trim().toUpperCase();
 
 		// add message to history
-		this.chatHistory.push( { username, message: messageUpper } );
-		if ( this.chatHistory.length > this.chatHistorySize )
+		this.chatHistory.push( { username, messageUpper } );
+		while ( this.chatHistory.length > this.chatHistorySize )
 			this.chatHistory.shift();
 
 		// ignore last chant message
@@ -37,9 +37,9 @@ class ChantComponent
 		const chanters = new Set();
 		this.chatHistory.forEach( record =>
 		{
-			if ( record.message === messageUpper && !chanters.has( record.username ) )
+			if ( record.messageUpper === messageUpper && !chanters.has( record.username ) )
 			{
-				chanters.add( username );
+				chanters.add( record.username );
 				chantCount++;
 			}
 		} );
