@@ -1,2 +1,2 @@
-# TwitchBot2
+# Ericakebot
  Better twitch bot written in nodejs with tmi.js
