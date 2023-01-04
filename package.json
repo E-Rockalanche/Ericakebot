@@ -9,7 +9,7 @@
   "author": "Eric Roberts",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.0.0",
+    "dotenv": "^16.0.3",
     "tmi.js": "^1.8.5"
   }
 }
