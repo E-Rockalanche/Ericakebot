@@ -11,8 +11,9 @@ Twitch chat bot written in javascript
 * add a text file named ".env" to the root folder with the following lines:
     * "BOT_USERNAME=twitch bot channel name"
     * "BOT_OAUTH=twitch bot channel oauth token"
+        * oauth token can be generated here: https://twitchapps.com/tmi/
 * open a command prompt in the root folder
-* run "node src -channel <CHANNEL_NAME>"
+* run "node . -channel <CHANNEL_NAME>"
 
 | Parameter | Optional | Description |
 | --- | --- | --- |
