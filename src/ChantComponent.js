@@ -20,6 +20,11 @@ class ChantComponent
 		if ( self )
 			return;
 
+		// ignore commands
+		const c = message[0];
+		if ( c == '/' || c == '.' || c == '!' )
+			return;
+
 		const username = userstate.username;
 		const messageUpper = message.trim().toUpperCase();
 

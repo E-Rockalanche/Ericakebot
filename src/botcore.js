@@ -1,6 +1,12 @@
 const tmi = require("tmi.js");
-const EventEmitter = require("events");
+
 const util = require("./util.js");
+const CommandRegistry = require("./CommandRegistry.js");
+
+const EventEmitter = require("events");
+const assert = require("assert");
+
+const TwitchMaxMessageLength = 500;
 
 class BotCore extends EventEmitter
 {
@@ -10,8 +16,11 @@ class BotCore extends EventEmitter
 
 		this.username = username;
 		this.channel = options.channel;
-		this.paused = false;
-		this.superadmin = options.superadmin;
+
+		this.commands = new CommandRegistry();
+
+		this.muted = false;
+		this.maxMessageLength = TwitchMaxMessageLength;
 
 		const tmiOptions = {
 			connection: {
@@ -36,7 +45,7 @@ class BotCore extends EventEmitter
 		});
 
 		this.client.on( "logon", ( address, port ) => {
-			console.log( `Logged onto account "${username}"` );
+			console.log( `Logged on to account "${username}"` );
 		});
 
 		this.client.on( "disconnected", (reason) => {
@@ -45,33 +54,48 @@ class BotCore extends EventEmitter
 
 		this.client.on( "chat", (channel, userstate, message, self) =>
 		{
-			// check if message is a bot command
-			if ( message[0] != "!" )
-				return;
-
-			// check if user can give commands
-			if ( userstate.mod === true ||
-				util.strieq( userstate.username, this.channel ) ||
-				util.strieq( userstate.username, this.superadmin ) )
-			{
-				this.parseCommand( message );
-			}
+			// handle commands
+			if ( message[0] == "!" )
+				this.commands.handleCommand( channel, userstate, message );
 		});
 
-		this.on( "command", ( command, args ) => this.handleCommand( command, args ) );
+		this.commands.registerCommand( "mute", "mod", () =>
+		{
+			this.muted = true;
+			console.log( "Muted" );
+		});
+
+		this.commands.registerCommand( "unmute", "mod", () => {
+			this.muted = false;
+			console.log( "Unmuted" );
+		});
+
+		this.commands.registerCommand( "setmaxmessagelength", "mod", ( channel, userstate, args ) => {
+			const length = parseInt( args[0] );
+			this.setMaxMessageLength( length );
+			console.log( `Set max message length to ${length}` );
+		});
+	}
+
+	setMaxMessageLength( length )
+	{
+		this.maxMessageLength = Math.Clamp( length, 0, TwitchMaxMessageLength );
 	}
 	
 	say( channel, message )
 	{
-		console.log( `\nSaying "${message}"` );
-		if ( this.paused )
-		{
-			console.log( `***Bot is paused***\n` );
+		if ( this.muted )
 			return;
+
+		console.log( `\n${this.username}:\t"${message}"` );
+
+		if ( message.length > this.maxMessageLength )
+		{
+			console.warn( `Message exceeds max length [${this.maxMessageLength}]` );
+			message = message.substring( 0, this.maxMessageLength );
 		}
 		
 		this.client.say( channel, message );
-		console.log( "\n" );
 	}
 
 	connect()
@@ -82,37 +106,6 @@ class BotCore extends EventEmitter
 	shutdown()
 	{
 		this.emit( "shutdown" );
-	}
-
-	parseCommand( str )
-	{
-		let args = str.split( /\s+/ );
-		if ( args.length == 0 )
-			return;
-
-		let command = args[0];
-		if ( command[0] == "!" )
-			command = command.slice( 1 );
-
-		args.shift();
-
-		this.emit( "command", command, args );
-	}
-
-	handleCommand( command, args )
-	{
-		switch( command )
-		{
-			case "pause":
-				this.paused = true;
-				console.log( "paused" );
-				break;
-
-			case "unpause":
-				this.paused = false;
-				console.log( "unpaused" );
-				break;
-		}
 	}
 }
 

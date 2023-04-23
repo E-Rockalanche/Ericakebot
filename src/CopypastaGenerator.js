@@ -123,6 +123,9 @@ class CopypastaGenerator
 		{
 			console.log( `\nMessage from ${username} was deleted: "${message}"` );
 			this.removeChatHistory( username );
+			
+			if ( util.strieq( username, this.core.username ) )
+				this.core.say( channel, "Sorry for saying a bad message :(" );
 		});
 
 		botCore.client.on("timeout", (channel, username, reason, duration, userstate) =>
@@ -147,9 +150,44 @@ class CopypastaGenerator
 			this.core.client.whisper( from, `Hi! I'm ${this.core.channel}, a chat bot developed by Ericake. I read messages in chat and use them to randomly generate new messages using a Markov chain. I also block pyramids and participate in chants :)` );
 		});
 
-		botCore.on("command", ( command, args ) => this.handleCommand( command, args ) );
-
 		botCore.on("shutdown", () => this.saveChatHistory() );
+
+		botCore.commands.registerCommand( "entropy", "console", () => {
+			const entropy = this.calculateEntropy();
+			console.log( `Entropy: ${entropy}\n` );
+		});
+
+		botCore.commands.registerCommand( "generate", "console", () => {
+			this.sayCopypasta();
+		});
+
+		botCore.commands.registerCommand( "test", "console", (channel, userstate, args) => {
+			const count = ( args.length > 0 ) ? parseInt( args[0] ) : 1;
+			console.log( `\nTesting ${count} messages:` );
+			for( let i = 0; i < count; ++i )
+			{
+				let message = "";
+				while( !message )
+					message = this.generateMessage();
+				
+				console.log( `Generated "${message}"` );
+			}
+			console.log( '\n' );
+		});
+
+		botCore.commands.registerCommand( "say", "console", (channel, userstate, args) => {
+			// bypass core.say
+			this.core.client.say( this.core.channel, args.join( " " ) );
+		});
+
+		botCore.commands.registerCommand( "record", "console", (channel, userstate, args) => {
+			this.parseMessage( "", args.join( " " ) );
+		});
+
+		botCore.commands.registerCommand( "useequalweights", "console", (channel, userstate, args) => {
+			this.config.useEqualWeights = (args.length > 0) ? (args[0].toUpperCase() === "TRUE") : true;
+			console.log( `Use equal weights: ${this.config.useEqualWeights}` );
+		});
 
 		this.loadChatHistory();
 
@@ -403,61 +441,6 @@ class CopypastaGenerator
 			entropy += ( row.totalWeight / this.totalMessagesWeight ) * this.markovChain.calculateRowEntropy( row );
 		});
 		return entropy;
-	}
-
-	handleCommand( command, args )
-	{
-		switch( command )
-		{
-			case "entropy":
-			{
-				const entropy = this.calculateEntropy();
-				console.log( `Entropy: ${entropy}\n` );
-				break;
-			}
-
-			case "generate":
-			{
-				this.sayCopypasta();
-				break;
-			}
-			
-			case "test":
-			{
-				const count = ( args.length > 0 ) ? parseInt( args[0] ) : 1;
-				console.log( `\nTesting ${count} messages:` );
-				for( let i = 0; i < count; ++i )
-				{
-					let message = "";
-					while( !message )
-						message = this.generateMessage();
-					
-					console.log( `Generated "${message}"` );
-				}
-				console.log( '\n' );
-				break;
-			}
-			
-			case "say":
-			{
-				// bypass core.say
-				this.core.client.say( this.core.channel, args.join( " " ) );
-				break;
-			}
-
-			case "record":
-			{
-				this.parseMessage( "", args.join( " " ) );
-				break;
-			}
-
-			case "useequalweights":
-			{
-				this.config.useEqualWeights = ( args[0].toUpperCase() === "TRUE" );
-				console.log( `Use equal weights: ${this.config.useEqualWeights}` );
-				break;
-			}
-		}
 	}
 
 	#getSaveDirectory()
