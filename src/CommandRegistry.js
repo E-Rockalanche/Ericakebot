@@ -14,23 +14,24 @@ class CommandRegistry
 
 		if ( typeof callback != 'function' )
 		{
-			console.error( `Command \"${command}\" callback is not a function` );
+			console.error( `Command "${command}" callback is not a function` );
 			return;
 		}
 
 		if ( roles.indexOf( role ) == -1 )
 		{
-			console.error( `Command \"${command}\" role \"${role}\" is unsupported` );
+			console.error( `Command "${command}" role "${role}" is unsupported` );
 			return;
 		}
 
 		if ( this.commands.has( command ) )
 		{
-			console.error( `Command \"${command}\" is already registered` );
+			console.error( `Command "${command}" is already registered` );
 			return;
 		}
 
 		this.commands.set( command, { role, callback } );
+		console.log( `Registered command "${command}"" with role "${role}"` );
 	}
 
 	removeCommand( command )
@@ -40,29 +41,17 @@ class CommandRegistry
 
 	setCommandRole( command, role )
 	{
-		let entry = this.commands.get( command );
+		const entry = this.commands.get( command );
 		if ( entry )
 			entry.role = role;
 	}
 
 	handleCommand( channel, userstate, message, checkRole = true )
 	{
-		let args = message.split( /\s+/ );
-		if ( args.length == 0 )
-			return;
+		const commandWordLength = message.search( /(\s+)|$/ );
+		const command = message.substring( 0, commandWordLength ).toLowerCase();
 
-		let command = args[0];
-		if ( command[0] == "!" )
-			command = command.slice( 1 );
-
-		if ( command.length == 0 )
-			return;
-
-		command = command.toLowerCase();
-
-		args.shift();
-
-		let entry = this.commands.get( command );
+		const entry = this.commands.get( command );
 		if ( entry === undefined )
 			return;
 
@@ -71,6 +60,9 @@ class CommandRegistry
 			console.log( `User ${userstate.username} requires role ${entry.role} for command ${command}` );
 			return;
 		}
+
+		const args = message.split(/\s+/);
+		args.shift(); // remove command word
 
 		entry.callback( channel, userstate, args );
 	}

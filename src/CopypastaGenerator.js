@@ -343,7 +343,7 @@ class CopypastaGenerator
 	// returns true if bot name was mentioned. Username should not be a display name
 	parseMessage( username, message, addToHistory = true )
 	{
-		console.log(`${username}:\t"${message}"` );
+		// console.log(`${username}:\t"${message}"` );
 
 		if ( addToHistory )
 			this.#addChatHistory( username, message );
@@ -387,7 +387,7 @@ class CopypastaGenerator
 		const filePath = path + filename;
 		fs.writeFileSync( filePath, JSON.stringify( this.chatHistory ) );
 
-		console.log( `Saved chat history to "${filePath}"` );
+		console.log( `Saved ${this.chatHistory.length} lines of chat history to "${filePath}"` );
 	}
 
 	loadChatHistory()
@@ -403,7 +403,7 @@ class CopypastaGenerator
 			this.parseMessage( username, message );
 		}
 
-		console.log( `Loaded chat history from "${filePath}"` );
+		console.log( `Loaded ${history.length} lines of chat history from "${filePath}"` );
 	}
 
 	loadCorpus( filename )
@@ -423,7 +423,7 @@ class CopypastaGenerator
 			this.parseMessage( CORPUS_USERNAME, message, ADD_TO_HISTORY );
 		}
 
-		console.log( `Loaded corpus from "${filename}"` );
+		console.log( `Loaded ${messages.length} lines from corpus "${filename}"` );
 		return true;
 	}
 

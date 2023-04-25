@@ -55,26 +55,32 @@ class BotCore extends EventEmitter
 		this.client.on( "chat", (channel, userstate, message, self) =>
 		{
 			// handle commands
-			if ( message[0] == "!" )
+			if ( !self )
 				this.commands.handleCommand( channel, userstate, message );
 		});
 
-		this.commands.registerCommand( "mute", "mod", () =>
+		this.commands.registerCommand( "!mute", "mod", () =>
 		{
 			this.muted = true;
 			console.log( "Muted" );
 		});
 
-		this.commands.registerCommand( "unmute", "mod", () => {
+		this.commands.registerCommand( "!unmute", "mod", () => {
 			this.muted = false;
 			console.log( "Unmuted" );
 		});
 
-		this.commands.registerCommand( "setmaxmessagelength", "mod", ( channel, userstate, args ) => {
+		this.commands.registerCommand( "!setmaxmessagelength", "mod", ( channel, userstate, args ) => {
 			const length = parseInt( args[0] );
 			this.setMaxMessageLength( length );
 			console.log( `Set max message length to ${length}` );
 		});
+
+		let imDadJokeFn = (channel, userstate, args) => {
+			this.say( channel, `Hi ${args.join(' ')}, I'm ${this.username}!` );
+		};
+		this.commands.registerCommand( "I'm", "all", imDadJokeFn );
+		this.commands.registerCommand( "Im", "all", imDadJokeFn );
 	}
 
 	setMaxMessageLength( length )
@@ -87,14 +93,13 @@ class BotCore extends EventEmitter
 		if ( this.muted )
 			return;
 
-		console.log( `\n${this.username}:\t"${message}"` );
-
 		if ( message.length > this.maxMessageLength )
 		{
 			console.warn( `Message exceeds max length [${this.maxMessageLength}]` );
 			message = message.substring( 0, this.maxMessageLength );
 		}
 		
+		console.log( `Saying "${message}"` );
 		this.client.say( channel, message );
 	}
 
@@ -105,6 +110,7 @@ class BotCore extends EventEmitter
 
 	shutdown()
 	{
+		this.say( this.channel, "Goodbye!" );
 		this.emit( "shutdown" );
 	}
 }
