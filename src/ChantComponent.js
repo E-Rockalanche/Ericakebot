@@ -18,7 +18,9 @@ class ChantComponent
 	onChat( channel, userstate, message, self )
 	{
 		if ( self )
-			return;
+		{
+			this.lastMessage = message.toUpperCase();
+		}
 
 		// ignore commands
 		const c = message[0];
