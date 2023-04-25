@@ -12,6 +12,7 @@ const BotCore = require("./botcore.js");
 const CopypastaGenerator = require("./CopypastaGenerator.js");
 const PyramidStopper = require("./PyramidStopper.js");
 const ChantComponent = require("./ChantComponent.js");
+const OpenAIComponent = require("./OpenAIComponent.js");
 
 // INITIALIZE
 
@@ -25,13 +26,16 @@ const copypastaGeneratorOptions = {
 	weightFunction: x => x
 };
 const copypastaGenerator = new CopypastaGenerator( botCore, copypastaGeneratorOptions );
-
 if ( options.corpus )
 	copypastaGenerator.loadCorpus( options.corpus );
 
 const pyramidStopper = new PyramidStopper( botCore );
 
 const chantComponent = new ChantComponent( botCore );
+
+let openAIComponent = null;
+if ( process.env.OPENAI_API_KEY )
+	openAIComponent = new OpenAIComponent( botCore, process.env.OPENAI_API_KEY );
 
 // RUN
 
@@ -52,20 +56,18 @@ cli.on("line", str =>
 	}
 });
 
+cli.on("SIGINT", () => process.exit(0) );
+cli.on("SIGTERM", () => process.exit(0) );
+cli.on("SIGHUP", () => process.exit(0) );
+
+process.on( "SIGINT", () => process.exit(0) );
+process.on( "SIGTERM", () => process.exit(0) );
+process.on( "SIGHUP", () => process.exit(0) );
+
 process.on( "exit", () =>
 {
 	console.log( "Process exiting" );
 	botCore.shutdown();
-});
-
-process.on( "SIGTERM", () =>
-{
-	process.exit(0);
-});
-
-process.on( "SIGINT", () =>
-{
-	process.exit(0);
 });
 
 process.on( "uncaughtException", err =>
