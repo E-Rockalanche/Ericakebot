@@ -29,7 +29,7 @@ class OpenAIComponent
 				prompt
 			});
 
-			this.core.say( channel, response.data.choices[0].text );
+			this.core.say( channel, response.data.choices[0].text.trim() );
 		}
 		catch( err )
 		{
