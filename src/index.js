@@ -13,6 +13,7 @@ const CopypastaGenerator = require("./CopypastaGenerator.js");
 const PyramidStopper = require("./PyramidStopper.js");
 const ChantComponent = require("./ChantComponent.js");
 const OpenAIComponent = require("./OpenAIComponent.js");
+const ReminderComponent = require("./ReminderComponent.js");
 
 // INITIALIZE
 
@@ -36,6 +37,8 @@ const chantComponent = new ChantComponent( botCore );
 let openAIComponent = null;
 if ( process.env.OPENAI_API_KEY )
 	openAIComponent = new OpenAIComponent( botCore, process.env.OPENAI_API_KEY );
+
+const reminderComponent = new ReminderComponent( botCore );
 
 // RUN
 
