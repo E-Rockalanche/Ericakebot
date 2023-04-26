@@ -20,6 +20,7 @@ class ChantComponent
 		if ( self )
 		{
 			this.lastMessage = message.toUpperCase();
+			return;
 		}
 
 		// ignore commands
