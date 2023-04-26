@@ -49,8 +49,10 @@ class CommandRegistry
 	handleCommand( channel, userstate, message, checkRole = true )
 	{
 		const commandWordLength = message.search( /(\s+)|$/ );
-		const command = message.substring( 0, commandWordLength ).toLowerCase();
+		if ( commandWordLength == 0 )
+			return;
 
+		const command = message.substring( 0, commandWordLength ).toLowerCase();
 		const entry = this.commands.get( command );
 		if ( entry === undefined )
 			return;
@@ -61,7 +63,7 @@ class CommandRegistry
 			return;
 		}
 
-		const args = message.split(/\s+/);
+		const args = message.trim().split(/\s+/);
 		args.shift(); // remove command word
 
 		entry.callback( channel, userstate, args );
