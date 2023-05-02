@@ -18,7 +18,7 @@ const END_TOKEN = "";
 
 const MAX_TWITCH_MESSAGE_LENGTH = 510;
 
-const COMMAND_REGEX = /^[!/]\w/;
+const COMMAND_REGEX = /^[!/\.]\w/;
 
 function createUserTag( num )
 {
@@ -86,7 +86,7 @@ const DEFAULT_CONFIG = {
 	messageCountDelay: 15,                       // message count delay between chatting
 	messageDelaySeconds: 180,                    // time delay between chatting
 	messageGenerationRetries: 4,                 // amount of extra times the bot tries to generate a message before giving up
-	allowReplies: true,                          // allow bot to reply to bot mentions
+	allowReplies: false,                         // allow bot to reply to bot mentions
 	replyDelaySeconds: 20,                       // time delay between sending replies
 	useEqualWeights: false                       // gives every markov transition from each state the same probability
 };
@@ -111,7 +111,7 @@ class CopypastaGenerator
 		this.lastReplyTimeMS = 0;
 		this.chatHistory = []; // history of tokens and weights put into the markov chain so they can be removed later
 
-		botCore.client.on("chat", (channel, userstate, message, self) => this.onChat(channel, userstate, message, self) );
+		botCore.client.on("chat", this.onChat.bind( this ) );
 
 		botCore.client.on("ban", (channel, username, reason, userstate) =>
 		{
