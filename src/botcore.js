@@ -93,6 +93,8 @@ class BotCore extends EventEmitter
 		if ( this.muted )
 			return;
 
+		message = message.trim();
+
 		if ( message.length > this.maxMessageLength )
 		{
 			console.warn( `Message exceeds max length [${this.maxMessageLength}]` );
