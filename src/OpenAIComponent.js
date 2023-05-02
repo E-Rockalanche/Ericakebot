@@ -33,12 +33,20 @@ class OpenAIComponent
 		this.chatModel = "gpt-3.5-turbo";
 		this.completionModel = "text-davinci-003";
 
+		this.totalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+
 		this.usernamePrefixRegex = new RegExp( `^\\s*@?(${this.core.username}):\\s*`, "i" );
 		// this.usernamePrefixRegex = /^\s*@?ericakebot:\s*/i;
 
 		// botCore.commands.registerCommand( "!askgpt", "all", this.askGPT.bind( this ) );
 
 		botCore.client.on( "chat", this.onChat.bind( this ) );
+
+		botCore.on( "shutdown", () => {
+			console.log( "\nTOKEN STATISTICS:" );
+			this.logUsage( this.totalUsage );
+			console.log( "\n" );
+		})
 	}
 
 	async onChat( channel, userstate, content, self )
@@ -92,20 +100,41 @@ class OpenAIComponent
 			this.messages.shift();
 	}
 
+	addUsage( usage )
+	{
+		this.totalUsage.prompt_tokens += usage.prompt_tokens;
+		this.totalUsage.completion_tokens += usage.completion_tokens;
+		this.totalUsage.total_tokens += usage.total_tokens;
+	}
+
+	logUsage( usage )
+	{
+		console.log( "prompt tokens: " + usage.prompt_tokens );
+		console.log( "completion tokens: " + usage.completion_tokens );
+		console.log( "total tokens: " + usage.total_tokens );
+	}
+
 	async textCompletion( prompt )
 	{
 		try
 		{
-			console.log( `text completion prompt: "${prompt}"` );
+			console.log( `\nprompt length: ${prompt.length}` );
 
 			const completion = await this.openai.createCompletion({
 				model: this.completionModel,
 				max_tokens: this.maxTokens,
-				frequency_penalty: 0.0,
+				frequency_penalty: 0.5,
 				prompt
 			});
+
+			const reply = completion.data.choices[0].text;
+
+			console.log( `reply: ${reply}` );
+
+			this.logUsage( completion.data.usage );
+			this.addUsage( completion.data.usage );
 			
-			return completion.data.choices[0].text;
+			return reply;
 		}
 		catch( error )
 		{
@@ -133,7 +162,14 @@ class OpenAIComponent
 				messages
 			});
 
-			return completion.data.choices[0].message.content;
+			const reply = completion.data.choices[0].message.content;
+
+			console.log( `reply: ${reply}` );
+			
+			this.logUsage( completion.data.usage );
+			this.addUsage( completion.data.usage );
+			
+			return reply;
 		}
 		catch( error )
 		{
