@@ -77,7 +77,18 @@ class BotCore extends EventEmitter
 		});
 
 		let imDadJokeFn = (channel, userstate, args) => {
-			this.say( channel, `Hi ${args.join(' ')}, I'm ${this.username}!` );
+			if ( util.randomChance( 0.5 ) )
+				return;
+
+			let msg = args.join( " " );
+
+			// trim message to first punctuation character
+			const last = msg.search( /[.,!?]/ );
+			if ( last >= 0 )
+				msg = msg.substring( 0, last ).trim();
+
+			if ( msg.length > 0 )
+				this.say( channel, `Hi ${msg}, I'm ${this.username}!` );
 		};
 		this.commands.registerCommand( "I'm", "all", imDadJokeFn );
 		this.commands.registerCommand( "Im", "all", imDadJokeFn );
@@ -94,14 +105,14 @@ class BotCore extends EventEmitter
 			return;
 
 		message = message.trim();
+		console.log( `\nSaying "${message}"` );
 
 		if ( message.length > this.maxMessageLength )
 		{
 			console.warn( `Message exceeds max length [${this.maxMessageLength}]` );
-			message = message.substring( 0, this.maxMessageLength );
+			message = message.substring( 0, this.maxMessageLength ).trim();
 		}
 		
-		console.log( `Saying "${message}"` );
 		this.client.say( channel, message );
 	}
 
@@ -112,8 +123,9 @@ class BotCore extends EventEmitter
 
 	shutdown()
 	{
-		this.say( this.channel, "Goodbye!" );
+		console.log( "shutting down" );
 		this.emit( "shutdown" );
+		console.log( "shutdown successful" );
 	}
 }
 
