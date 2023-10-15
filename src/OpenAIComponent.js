@@ -24,21 +24,34 @@ class OpenAIComponent
 
 		this.openai = new OpenAIApi( config );
 
-		this.systemMessages = [{ role: "system", content: `Pretend to be a twitch chat user`, name: this.core.username }];
+		const botName = this.core.username;
+		this.systemMessageRules = [
+			`${botName} is a fictional character`,
+			`${botName} is not an AI and does not answer question like an AI`,
+			`${botName} is chatting in an 18+ livestream`,
+			`${botName} always gives a decisive answer to any question`,
+			`${botName} adjusts to the conversation`,
+			`${botName} is a bit cheeky, spicy, and saucy`,
+			`${botName} is not prudish and will not tell people to stay PG13`,
+			`${botName} is a gamer and therefor is very opinionated`,
+			`Respond to all prompts acting as the character ${botName}`
+		];
+
 		this.messages = [];
 		this.messageHistoryLength = 20;
-		this.maxTokens = 120;
+		this.maxTokens = 250;
 		this.replyToMentions = true;
 
 		this.chatModel = "gpt-3.5-turbo";
-		this.completionModel = "text-davinci-003";
+		this.completionModel = "";
 
 		this.totalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
-		this.usernamePrefixRegex = new RegExp( `^\\s*@?(${this.core.username}):\\s*`, "i" );
-		// this.usernamePrefixRegex = /^\s*@?ericakebot:\s*/i;
+		this.usernamePrefixRegex = new RegExp( `.*(${this.core.username}):\\s*`, "i" );
 
 		// botCore.commands.registerCommand( "!askgpt", "all", this.askGPT.bind( this ) );
+
+		botCore.commands.registerCommand( "!setsysmsg", "all", this.setSystemMessage.bind( this ) );
 
 		botCore.client.on( "chat", this.onChat.bind( this ) );
 
@@ -49,6 +62,10 @@ class OpenAIComponent
 		})
 	}
 
+	setSystemMessage( channel, userstate, args )
+	{
+	}
+
 	async onChat( channel, userstate, content, self )
 	{
 		const role = self ? "assistant" : "user";
@@ -56,24 +73,42 @@ class OpenAIComponent
 
 		if ( this.replyToMentions && !self && findUserMention( content, this.core.username ) )
 		{
+			/*
 			let prompt = "";
 			for( const entry of this.messages )
 			{
 				prompt += `${entry.name}: ${entry.content}\n`;
 			}
+			prompt += `${this.core.username}: `;
 
 			let reply = await this.textCompletion( prompt );
-			if ( reply )
+			if ( !reply )
+				return;
+				*/
+
+			const systemMessage = this.systemMessageRules.join( ". " );
+
+			let prompt = `Complete the following chat as the character ${this.core.username}\n\n`;
+			for( const entry of this.messages )
 			{
-				// remove any "BOT_NAME: " prefix added by the AI
-				reply = reply.replace( this.usernamePrefixRegex, "" );
-
-				// mention the user if the AI didn't
-				if ( !findUserMention( reply, userstate.username ) )
-					reply = `@${userstate.username} ${reply}`;
-
-				this.core.say( channel, reply );
+				prompt += `${entry.name}: ${entry.content}\n`;
 			}
+			prompt += `${this.core.username}: `;
+
+			let reply = await this.chatCompletion( [{ role: "system", content: systemMessage }, { role: "user", content: prompt }] );
+			if ( !reply )
+				return;
+
+			// remove any "... botname: " prefix added by the AI
+			// reply = reply.replace( this.usernamePrefixRegex, "" ).trim();
+			// if ( reply.length == 0 )
+			// 	return;
+
+			// mention the user if the AI didn't
+			if ( !findUserMention( reply, userstate.username ) )
+				reply = `@${userstate.username} ${reply}`;
+
+			this.core.say( channel, reply );
 		}
 	}
 
@@ -86,7 +121,7 @@ class OpenAIComponent
 			return;
 		}
 
-		const reply = await textCompletion( prompt );
+		const reply = await this.textCompletion( prompt );
 
 		if ( reply )
 			this.core.say( channel, reply );
@@ -118,8 +153,6 @@ class OpenAIComponent
 	{
 		try
 		{
-			console.log( `\nprompt length: ${prompt.length}` );
-
 			const completion = await this.openai.createCompletion({
 				model: this.completionModel,
 				max_tokens: this.maxTokens,
@@ -129,7 +162,7 @@ class OpenAIComponent
 
 			const reply = completion.data.choices[0].text;
 
-			console.log( `reply: ${reply}` );
+			console.log( `\nraw reply: "${reply}"` );
 
 			this.logUsage( completion.data.usage );
 			this.addUsage( completion.data.usage );
@@ -151,20 +184,20 @@ class OpenAIComponent
 		}
 	}
 
-	async chatCompletion( chatMessages )
+	async chatCompletion( messages )
 	{
 		try
 		{
-			const messages = this.systemMessages.concat( chatMessages );
-
 			const completion = await this.openai.createChatCompletion({
 				model: this.chatModel,
+				max_tokens: this.maxTokens,
+				frequency_penalty: 0.5,
 				messages
 			});
 
 			const reply = completion.data.choices[0].message.content;
 
-			console.log( `reply: ${reply}` );
+			console.log( `\nraw reply: "${reply}"` );
 			
 			this.logUsage( completion.data.usage );
 			this.addUsage( completion.data.usage );
