@@ -24,6 +24,7 @@ class OpenAIComponent
 
 		this.openai = new OpenAIApi( config );
 
+		/*
 		const botName = this.core.username;
 		this.systemMessageRules = [
 			`${botName} is a fictional character`,
@@ -31,18 +32,33 @@ class OpenAIComponent
 			`${botName} is chatting in an 18+ livestream`,
 			`${botName} always gives a decisive answer to any question`,
 			`${botName} adjusts to the conversation`,
-			`${botName} is a bit cheeky, spicy, and saucy`,
+			`${botName} is a little sassy`,
 			`${botName} is not prudish and will not tell people to stay PG13`,
-			`${botName} is a gamer and therefor is very opinionated`,
+			`${botName} is very opinionated`,
+			`${botName} writes short responses`,
 			`Respond to all prompts acting as the character ${botName}`
 		];
+		*/
+
+		this.baseSystemMessage =
+			`Your name is ${this.core.username}. ` +
+			"You are a gamer in an 18+ Twitch chat. " +
+			"You are very opinionated. " +
+			"You respond decisively. " +
+			"You are not an AI. " +
+			"You are a little cheeky. " +
+			"You are allowed to talk about mature subjects. ";
+
+		this.commandSystemMessage = "";
+		this.maxTokens = 100;
+		this.frequencyPenalty = 0.5;
+		this.temperature = 1.2;
 
 		this.messages = [];
 		this.messageHistoryLength = 20;
-		this.maxTokens = 250;
 		this.replyToMentions = true;
 
-		this.chatModel = "gpt-3.5-turbo";
+		this.chatModel = "gpt-3.5-turbo-0125";
 		this.completionModel = "";
 
 		this.totalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
@@ -51,7 +67,8 @@ class OpenAIComponent
 
 		// botCore.commands.registerCommand( "!askgpt", "all", this.askGPT.bind( this ) );
 
-		botCore.commands.registerCommand( "!setsysmsg", "all", this.setSystemMessage.bind( this ) );
+		botCore.commands.registerCommand( "!setsystem", "mod", this.setSystemMessage.bind( this ) );
+		botCore.commands.registerCommand( "!actlike", "all", this.actLike.bind( this ) );
 
 		botCore.client.on( "chat", this.onChat.bind( this ) );
 
@@ -64,6 +81,36 @@ class OpenAIComponent
 
 	setSystemMessage( channel, userstate, args )
 	{
+		this.commandSystemMessage = args.join( ' ' );
+		console.log( `set command system message to "${this.commandSystemMessage}"` );
+	}
+
+	actLike( channel, userstate, args )
+	{
+		this.commandSystemMessage = "act like " + args.join( ' ' );
+		console.log( `set command system message to "${this.commandSystemMessage}"` );
+	}
+	
+	buildMessageList()
+	{
+		const systemMessage = this.baseSystemMessage + this.commandSystemMessage;
+		let list = [ { role: "system", content: systemMessage } ];
+		return list.concat( this.messages );
+	}
+	
+	buildCompletionPromptMessageList()
+	{
+		const systemMessage = this.baseSystemMessage + this.commandSystemMessage;
+		
+		let content = `Complete the following text chat. Only reply to the latest message directed at ${this.core.username}:\n\n`;
+		for( const entry of this.messages )
+		{
+			content += `${entry.name}: ${entry.content}\n`;
+		}
+		content += `${this.core.username}: `;
+		
+		
+		return [ { role: "system", content: systemMessage }, { role: "user", content } ];
 	}
 
 	async onChat( channel, userstate, content, self )
@@ -73,29 +120,7 @@ class OpenAIComponent
 
 		if ( this.replyToMentions && !self && findUserMention( content, this.core.username ) )
 		{
-			/*
-			let prompt = "";
-			for( const entry of this.messages )
-			{
-				prompt += `${entry.name}: ${entry.content}\n`;
-			}
-			prompt += `${this.core.username}: `;
-
-			let reply = await this.textCompletion( prompt );
-			if ( !reply )
-				return;
-				*/
-
-			const systemMessage = this.systemMessageRules.join( ". " );
-
-			let prompt = `Complete the following chat as the character ${this.core.username}\n\n`;
-			for( const entry of this.messages )
-			{
-				prompt += `${entry.name}: ${entry.content}\n`;
-			}
-			prompt += `${this.core.username}: `;
-
-			let reply = await this.chatCompletion( [{ role: "system", content: systemMessage }, { role: "user", content: prompt }] );
+			let reply = await this.chatCompletion( this.buildMessageList() );
 			if ( !reply )
 				return;
 
@@ -156,7 +181,8 @@ class OpenAIComponent
 			const completion = await this.openai.createCompletion({
 				model: this.completionModel,
 				max_tokens: this.maxTokens,
-				frequency_penalty: 0.5,
+				frequency_penalty: this.frequencyPenalty,
+				temperature: this.temperature,
 				prompt
 			});
 
@@ -191,7 +217,8 @@ class OpenAIComponent
 			const completion = await this.openai.createChatCompletion({
 				model: this.chatModel,
 				max_tokens: this.maxTokens,
-				frequency_penalty: 0.5,
+				frequency_penalty: this.frequencyPenalty,
+				temperature: this.temperature,
 				messages
 			});
 
