@@ -77,7 +77,7 @@ class BotCore extends EventEmitter
 		});
 
 		let imDadJokeFn = (channel, userstate, args) => {
-			if ( util.randomChance( 0.5 ) )
+			if ( !util.randomChance( 0.25 ) )
 				return;
 
 			let msg = args.join( " " );

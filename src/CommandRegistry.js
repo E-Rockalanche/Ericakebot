@@ -89,8 +89,10 @@ class CommandRegistry
 					return true;
 
 			case "broadcaster":
-				return userstate.badges.broadcaster;
+				if ( userstate.badges.broadcaster )
+					return true;
 
+			case "console":
 			default:
 				return false;
 		}

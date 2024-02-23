@@ -11,7 +11,7 @@ class ReminderComponent
 	{
 		if ( !this.tryCreateReminder( channel, userstate, args ) )
 		{
-			this.core.say( channel, `Command arguments are: !reminder <number><ms|s|m|h|d> <message>` );
+			this.core.say( channel, `Command arguments are: !remindme <number><ms|s|m|h|d> <message>` );
 		}
 	}
 
